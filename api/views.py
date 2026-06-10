@@ -62,3 +62,10 @@ class BusinessProfileListView(generics.ListAPIView):
     queryset = Profile.objects.filter(type='business')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated]
+
+
+class CustomerProfileListView(generics.ListAPIView):
+
+    queryset = Profile.objects.filter(type='customer')
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
