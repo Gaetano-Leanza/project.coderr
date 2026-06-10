@@ -6,6 +6,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from .serializers import RegistrationSerializer, LoginSerializer, ProfileSerializer
 from .models import Profile
+from .serializers import RegistrationSerializer, LoginSerializer, ProfileSerializer, CustomerListSerializer
 
 
 from .permissions import IsOwnerProfile
@@ -67,5 +68,5 @@ class BusinessProfileListView(generics.ListAPIView):
 class CustomerProfileListView(generics.ListAPIView):
 
     queryset = Profile.objects.filter(type='customer')
-    serializer_class = ProfileSerializer
+    serializer_class = CustomerListSerializer
     permission_classes = [IsAuthenticated]

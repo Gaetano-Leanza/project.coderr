@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile
 
+
 class RegistrationSerializer(serializers.ModelSerializer):
     repeated_password = serializers.CharField(write_only=True)
     type = serializers.CharField(write_only=True)
@@ -32,7 +33,6 @@ class RegistrationSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             password=validated_data['password']
         )
-
 
         Profile.objects.create(
             user=user,
@@ -66,4 +66,26 @@ class ProfileSerializer(serializers.ModelSerializer):
         for key, value in data.items():
             if value is None:
                 data[key] = ""
+        return data
+
+
+class CustomerListSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    uploaded_at = serializers.DateTimeField(
+        source='created_at', read_only=True)
+
+    class Meta:
+        model = Profile
+        fields = [
+            'user', 'username', 'first_name', 'last_name', 'file',
+            'uploaded_at', 'type'
+        ]
+
+    def to_representation(self, instance):
+        """Sorgt auch hier dafür, dass None zu einem leeren String wird."""
+        data = super().to_representation(instance)
+        string_fields = ['first_name', 'last_name', 'file']
+        for field in string_fields:
+            if data.get(field) is None:
+                data[field] = ""
         return data
