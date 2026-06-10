@@ -24,3 +24,7 @@ urlpatterns = [
     path('api/login/', LoginView.as_view(), name='api-login'),
     path('api/profile/<int:pk>/', ProfileDetailView.as_view(), name='profile-detail'),
 ]
+
+
+
+
