@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile
+from .models import Profile, Offer
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -89,3 +89,36 @@ class CustomerListSerializer(serializers.ModelSerializer):
             if data.get(field) is None:
                 data[field] = ""
         return data
+
+
+class OfferSerializer(serializers.ModelSerializer):
+
+    user_details = serializers.SerializerMethodField()
+    details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Offer
+        fields = [
+            'id', 'user', 'title', 'image', 'description',
+            'created_at', 'updated_at', 'details',
+            'min_price', 'min_delivery_time', 'user_details'
+        ]
+
+    def get_user_details(self, obj):
+        """Baut das geforderte user_details Objekt aus dem verknüpften User zusammen."""
+        return {
+            "first_name": obj.user.first_name,
+            "last_name": obj.user.last_name,
+            "username": obj.user.username
+        }
+
+    def get_details(self, obj):
+        """Greift über den related_name 'details' auf alle OfferDetails zu."""
+        return [
+            {
+                "id": detail.id,
+                "url": f"/offerdetails/{detail.id}/"
+            }
+
+            for detail in obj.details.all()
+        ]
