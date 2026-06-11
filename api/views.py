@@ -1,12 +1,17 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import status, generics, filters  
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .serializers import RegistrationSerializer, LoginSerializer, ProfileSerializer
-from .models import Profile
-from .serializers import RegistrationSerializer, LoginSerializer, ProfileSerializer, CustomerListSerializer
+from .models import Profile, Offer 
+from .serializers import (
+    RegistrationSerializer, 
+    LoginSerializer, 
+    ProfileSerializer, 
+    CustomerListSerializer, 
+    OfferSerializer
+)
 from .pagination import OfferPagination
 from .permissions import IsOwnerProfile
 
@@ -58,14 +63,43 @@ class ProfileDetailView(generics.RetrieveUpdateAPIView):
 
 
 class BusinessProfileListView(generics.ListAPIView):
-
     queryset = Profile.objects.filter(type='business')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated]
 
 
 class CustomerProfileListView(generics.ListAPIView):
-
     queryset = Profile.objects.filter(type='customer')
     serializer_class = CustomerListSerializer
     permission_classes = [IsAuthenticated]
+
+
+class OfferListView(generics.ListAPIView):
+    """
+    Gibt eine paginierte Liste von Angeboten zurück. 
+    Unterstützt Suche (?search=) und Filterung (min_price, max_delivery_time, creator_id).
+    """
+    serializer_class = OfferSerializer
+    pagination_class = OfferPagination
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['title', 'description']
+    ordering_fields = ['updated_at', 'min_price']
+
+    def get_queryset(self):
+        
+        queryset = Offer.objects.all()
+        
+        creator_id = self.request.query_params.get('creator_id')
+        min_price = self.request.query_params.get('min_price')
+        max_delivery_time = self.request.query_params.get('max_delivery_time')
+
+        if creator_id is not None:
+            queryset = queryset.filter(user_id=creator_id)
+            
+        if min_price is not None:
+            queryset = queryset.filter(min_price__gte=min_price)
+            
+        if max_delivery_time is not None:
+            queryset = queryset.filter(min_delivery_time__lte=max_delivery_time)
+
+        return queryset
