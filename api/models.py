@@ -17,3 +17,34 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"Profil von {self.user.username}"
+
+
+
+
+class Offer(models.Model):
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    image = models.FileField(upload_to='offer_images/', blank=True, null=True)
+    description = models.TextField()
+    
+    min_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    min_delivery_time = models.IntegerField(default=1)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+
+class OfferDetail(models.Model):
+   
+    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name='details')
+    title = models.CharField(max_length=100)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    delivery_time_in_days = models.IntegerField()
+  
+
+    def __str__(self):
+        return f"Detail für {self.offer.title}"

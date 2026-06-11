@@ -7,8 +7,7 @@ from django.contrib.auth import authenticate
 from .serializers import RegistrationSerializer, LoginSerializer, ProfileSerializer
 from .models import Profile
 from .serializers import RegistrationSerializer, LoginSerializer, ProfileSerializer, CustomerListSerializer
-
-
+from .pagination import OfferPagination
 from .permissions import IsOwnerProfile
 
 
