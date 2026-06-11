@@ -1,15 +1,15 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics, filters  
+from rest_framework import status, generics, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .models import Profile, Offer 
+from .models import Profile, Offer
 from .serializers import (
-    RegistrationSerializer, 
-    LoginSerializer, 
-    ProfileSerializer, 
-    CustomerListSerializer, 
+    RegistrationSerializer,
+    LoginSerializer,
+    ProfileSerializer,
+    CustomerListSerializer,
     OfferSerializer
 )
 from .pagination import OfferPagination
@@ -75,31 +75,43 @@ class CustomerProfileListView(generics.ListAPIView):
 
 
 class OfferListView(generics.ListAPIView):
-    """
-    Gibt eine paginierte Liste von Angeboten zurück. 
-    Unterstützt Suche (?search=) und Filterung (min_price, max_delivery_time, creator_id).
-    """
+
     serializer_class = OfferSerializer
     pagination_class = OfferPagination
+
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description']
     ordering_fields = ['updated_at', 'min_price']
 
     def get_queryset(self):
-        
         queryset = Offer.objects.all()
-        
+
         creator_id = self.request.query_params.get('creator_id')
         min_price = self.request.query_params.get('min_price')
         max_delivery_time = self.request.query_params.get('max_delivery_time')
 
         if creator_id is not None:
-            queryset = queryset.filter(user_id=creator_id)
-            
+            queryset = queryset.filter(user_id=int(creator_id))
+
         if min_price is not None:
-            queryset = queryset.filter(min_price__gte=min_price)
-            
+            queryset = queryset.filter(min_price__gte=float(min_price))
+
         if max_delivery_time is not None:
-            queryset = queryset.filter(min_delivery_time__lte=max_delivery_time)
+            queryset = queryset.filter(
+                min_delivery_time__lte=int(max_delivery_time))
 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        """
+        Hier bauen wir den Türsteher ein: Wir versuchen, die Liste zu laden. 
+        Wenn im get_queryset ein ValueError passiert, fangen wir ihn ab 
+        und geben direkt einen sauberen 400er Fehler zurück.
+        """
+        try:
+            return super().list(request, *args, **kwargs)
+        except ValueError:
+            return Response(
+                {"detail": "Ungültige Anfrageparameter."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
