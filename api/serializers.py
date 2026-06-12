@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Profile, Offer
+from .models import OfferDetail, Profile, Offer
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -122,3 +122,52 @@ class OfferSerializer(serializers.ModelSerializer):
 
             for detail in obj.details.all()
         ]
+
+
+class OfferDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OfferDetail
+        fields = ['id', 'title', 'revisions',
+                  'delivery_time_in_days', 'price', 'features', 'offer_type']
+
+
+class OfferCreateSerializer(serializers.ModelSerializer):
+
+    details = OfferDetailSerializer(many=True)
+
+    class Meta:
+        model = Offer
+        fields = ['id', 'title', 'image', 'description', 'details']
+
+    def validate_details(self, value):
+        """Prüft, ob exakt 3 Details mitgeschickt wurden und ob die Typen stimmen."""
+        if len(value) != 3:
+            raise serializers.ValidationError(
+                "Ein Offer muss genau 3 Details enthalten!")
+
+        types = [d.get('offer_type') for d in value]
+        if sorted(types) != ['basic', 'premium', 'standard']:
+            raise serializers.ValidationError(
+                "Die Details müssen 'basic', 'standard' und 'premium' enthalten.")
+        return value
+
+    def create(self, validated_data):
+        """Überschreibt die Standard-Erstellung, um verschachtelte Daten zu speichern."""
+        details_data = validated_data.pop('details')
+        user = self.context['request'].user
+
+        min_price = min([d['price'] for d in details_data])
+        min_delivery_time = min([d['delivery_time_in_days']
+                                for d in details_data])
+
+        offer = Offer.objects.create(
+            user=user,
+            min_price=min_price,
+            min_delivery_time=min_delivery_time,
+            **validated_data
+        )
+
+        for detail_data in details_data:
+            OfferDetail.objects.create(offer=offer, **detail_data)
+
+        return offer
