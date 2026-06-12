@@ -10,10 +10,11 @@ from .serializers import (
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer
+    OfferSerializer, OfferCreateSerializer
 )
 from .pagination import OfferPagination
-from .permissions import IsOwnerProfile
+from .permissions import IsOwnerProfile, IsBusinessProfile
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 
 class RegistrationView(APIView):
@@ -74,14 +75,21 @@ class CustomerProfileListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
 
-class OfferListView(generics.ListAPIView):
-
-    serializer_class = OfferSerializer
+class OfferListView(generics.ListCreateAPIView):
     pagination_class = OfferPagination
-
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description']
     ordering_fields = ['updated_at', 'min_price']
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return OfferCreateSerializer
+        return OfferSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsBusinessProfile()]
+        return [AllowAny()]
 
     def get_queryset(self):
         queryset = Offer.objects.all()
@@ -97,17 +105,11 @@ class OfferListView(generics.ListAPIView):
             queryset = queryset.filter(min_price__gte=float(min_price))
 
         if max_delivery_time is not None:
-            queryset = queryset.filter(
-                min_delivery_time__lte=int(max_delivery_time))
+            queryset = queryset.filter(min_delivery_time__lte=int(max_delivery_time))
 
         return queryset
 
     def list(self, request, *args, **kwargs):
-        """
-        Hier bauen wir den Türsteher ein: Wir versuchen, die Liste zu laden. 
-        Wenn im get_queryset ein ValueError passiert, fangen wir ihn ab 
-        und geben direkt einen sauberen 400er Fehler zurück.
-        """
         try:
             return super().list(request, *args, **kwargs)
         except ValueError:
