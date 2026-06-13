@@ -171,3 +171,26 @@ class OfferCreateSerializer(serializers.ModelSerializer):
             OfferDetail.objects.create(offer=offer, **detail_data)
 
         return offer
+
+
+class SingleOfferSerializer(serializers.ModelSerializer):
+    details = serializers.SerializerMethodField()
+    min_price = serializers.FloatField()
+
+    class Meta:
+        model = Offer
+
+        fields = [
+            'id', 'user', 'title', 'image', 'description',
+            'created_at', 'updated_at', 'details',
+            'min_price', 'min_delivery_time'
+        ]
+
+    def get_details(self, obj):
+        return [
+            {
+                "id": detail.id,
+                "url": f"/offerdetails/{detail.id}/"
+            }
+            for detail in obj.details.all()
+        ]

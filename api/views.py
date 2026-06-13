@@ -10,7 +10,7 @@ from .serializers import (
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer, OfferCreateSerializer
+    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer
 )
 from .pagination import OfferPagination
 from .permissions import IsOwnerProfile, IsBusinessProfile
@@ -122,5 +122,5 @@ class OfferListView(generics.ListCreateAPIView):
 class OfferDetailView(generics.RetrieveAPIView):
  
     queryset = Offer.objects.all()
-    serializer_class = OfferSerializer
+    serializer_class = SingleOfferSerializer
     permission_classes = [IsAuthenticated] 

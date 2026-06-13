@@ -26,7 +26,7 @@ urlpatterns = [
     path('api/profiles/customer/', CustomerProfileListView.as_view(), name='customer-profile-list'),
     path('api/profile/<int:pk>/', ProfileDetailView.as_view(), name='profile-detail'),
     path('api/offers/', OfferListView.as_view(), name='offer-list'),
-    path('offers/<int:pk>/', OfferDetailView.as_view(), name='offer-detail'),
+    path('api/offers/<int:pk>/', OfferDetailView.as_view(), name='offer-detail'),
 ]
 
 
