@@ -10,7 +10,7 @@ from .serializers import (
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer
+    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer
 )
 from .pagination import OfferPagination
 from .permissions import IsOwnerProfile, IsBusinessProfile
@@ -105,7 +105,8 @@ class OfferListView(generics.ListCreateAPIView):
             queryset = queryset.filter(min_price__gte=float(min_price))
 
         if max_delivery_time is not None:
-            queryset = queryset.filter(min_delivery_time__lte=int(max_delivery_time))
+            queryset = queryset.filter(
+                min_delivery_time__lte=int(max_delivery_time))
 
         return queryset
 
@@ -117,10 +118,22 @@ class OfferListView(generics.ListCreateAPIView):
                 {"detail": "Ungültige Anfrageparameter."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-            
+
 
 class OfferDetailView(generics.RetrieveAPIView):
- 
+
     queryset = Offer.objects.all()
     serializer_class = SingleOfferSerializer
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated]
+
+
+class OfferUpdateView(generics.RetrieveUpdateAPIView):
+    queryset = Offer.objects.all()
+    serializer_class = OfferPatchSerializer
+    lookup_field = 'id'
+
+    def get_queryset(self):
+   
+        if self.request.user.is_authenticated:
+            return Offer.objects.filter(user=self.request.user)
+        return Offer.objects.none()
