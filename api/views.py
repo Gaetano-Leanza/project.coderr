@@ -117,3 +117,10 @@ class OfferListView(generics.ListCreateAPIView):
                 {"detail": "Ungültige Anfrageparameter."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+            
+
+class OfferDetailView(generics.RetrieveAPIView):
+ 
+    queryset = Offer.objects.all()
+    serializer_class = OfferSerializer
+    permission_classes = [IsAuthenticated] 
