@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import BusinessProfileListView, CustomerProfileListView, RegistrationView, LoginView, ProfileDetailView, OfferListView
+from api.views import BusinessProfileListView, CustomerProfileListView, RegistrationView, LoginView, ProfileDetailView, OfferListView, OfferDetailView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/profiles/customer/', CustomerProfileListView.as_view(), name='customer-profile-list'),
     path('api/profile/<int:pk>/', ProfileDetailView.as_view(), name='profile-detail'),
     path('api/offers/', OfferListView.as_view(), name='offer-list'),
+    path('offers/<int:pk>/', OfferDetailView.as_view(), name='offer-detail'),
 ]
 
 
