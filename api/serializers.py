@@ -187,10 +187,52 @@ class SingleOfferSerializer(serializers.ModelSerializer):
         ]
 
     def get_details(self, obj):
+
+        request = self.context.get('request')
+
         return [
             {
                 "id": detail.id,
-                "url": f"/offerdetails/{detail.id}/"
+                "url": request.build_absolute_uri(f"/api/offerdetails/{detail.id}/") if request else f"http://127.0.0.1:8000/api/offerdetails/{detail.id}/"
             }
             for detail in obj.details.all()
         ]
+
+
+class OfferPatchSerializer(serializers.ModelSerializer):
+
+    details = OfferDetailSerializer(many=True, required=False)
+
+    class Meta:
+        model = Offer
+        fields = ['id', 'title', 'image', 'description', 'details']
+        read_only_fields = ['id']
+
+    def update(self, instance, validated_data):
+
+        details_data = validated_data.pop('details', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if details_data is not None:
+            for detail_item in details_data:
+                offer_type = detail_item.get('offer_type')
+
+                if offer_type:
+
+                    OfferDetail.objects.update_or_create(
+                        offer=instance,
+                        offer_type=offer_type,
+                        defaults=detail_item
+                    )
+
+            current_details = instance.details.all()
+            if current_details.exists():
+                instance.min_price = min([d.price for d in current_details])
+                instance.min_delivery_time = min(
+                    [d.delivery_time_in_days for d in current_details])
+                instance.save()
+
+        return instance
