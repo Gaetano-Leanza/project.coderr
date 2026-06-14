@@ -4,13 +4,13 @@ from rest_framework import status, generics, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .models import Profile, Offer
+from .models import Profile, Offer, OfferDetail
 from .serializers import (
     RegistrationSerializer,
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer
+    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer
 )
 from .pagination import OfferPagination
 from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly
@@ -129,3 +129,9 @@ class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
         if self.request.method in ['PATCH', 'PUT']:
             return OfferPatchSerializer
         return SingleOfferSerializer
+
+
+class SingleOfferDetailView(generics.RetrieveAPIView):
+    queryset = OfferDetail.objects.all()
+    serializer_class = OfferDetailSerializer
+    permission_classes = [IsAuthenticated]
