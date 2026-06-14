@@ -13,8 +13,8 @@ from .serializers import (
     OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer
 )
 from .pagination import OfferPagination
-from .permissions import IsOwnerProfile, IsBusinessProfile
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 
 
 class RegistrationView(APIView):
@@ -120,20 +120,12 @@ class OfferListView(generics.ListCreateAPIView):
             )
 
 
-class OfferDetailView(generics.RetrieveAPIView):
-
-    queryset = Offer.objects.all()
-    serializer_class = SingleOfferSerializer
-    permission_classes = [IsAuthenticated]
-
-
-class OfferDetailView(generics.RetrieveUpdateAPIView):
+class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Offer.objects.all()
     lookup_field = 'pk'
+    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
     def get_serializer_class(self):
-      
         if self.request.method in ['PATCH', 'PUT']:
             return OfferPatchSerializer
-
         return SingleOfferSerializer
