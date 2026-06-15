@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import OfferDetail, Profile, Offer
+from .models import OfferDetail, Profile, Offer, Order
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -236,3 +236,14 @@ class OfferPatchSerializer(serializers.ModelSerializer):
                 instance.save()
 
         return instance
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = [
+            'id', 'customer_user', 'business_user', 'title',
+            'revisions', 'delivery_time_in_days', 'price',
+            'features', 'offer_type', 'status',
+            'created_at', 'updated_at'
+        ]
