@@ -4,17 +4,18 @@ from rest_framework import status, generics, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .models import Profile, Offer, OfferDetail
+from .models import Profile, Offer, OfferDetail, Order
 from .serializers import (
     RegistrationSerializer,
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer
+    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer, OrderSerializer
 )
 from .pagination import OfferPagination
 from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from django.db.models import Q
 
 
 class RegistrationView(APIView):
@@ -135,3 +136,17 @@ class SingleOfferDetailView(generics.RetrieveAPIView):
     queryset = OfferDetail.objects.all()
     serializer_class = OfferDetailSerializer
     permission_classes = [IsAuthenticated]
+
+
+class OrderListView(generics.ListAPIView):
+    serializer_class = OrderSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        return Order.objects.filter(
+            Q(customer_user=user) | Q(business_user=user)
+        ).order_by('-created_at')
