@@ -30,13 +30,12 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 
 class IsCustomer(permissions.BasePermission):
-
     message = "Benutzer hat keine Berechtigung, z.B. weil nicht vom typ 'customer'."
 
     def has_permission(self, request, view):
-
-        return bool(
-            request.user and
-            request.user.is_authenticated and
-            getattr(request.user, 'type', '') == 'customer'
-        )
+        if not request.user or not request.user.is_authenticated:
+            return False
+        try:
+            return request.user.profile.type == 'customer'
+        except AttributeError:
+            return False
