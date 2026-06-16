@@ -13,7 +13,7 @@ from .serializers import (
     OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer, OrderSerializer
 )
 from .pagination import OfferPagination
-from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly
+from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from django.db.models import Q
 
@@ -138,15 +138,55 @@ class SingleOfferDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
 
-class OrderListView(generics.ListAPIView):
+class OrderListCreateView(generics.ListCreateAPIView):
     serializer_class = OrderSerializer
 
-    permission_classes = [IsAuthenticated]
+    def get_permissions(self):
+        """
+        Für GET (Liste anzeigen) reicht es, eingeloggt zu sein.
+        Für POST (Bestellung erstellen) MUSS man zusätzlich 'customer' sein.
+        """
+        if self.request.method == 'POST':
+            return [IsAuthenticated(), IsCustomer()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
 
         user = self.request.user
-
         return Order.objects.filter(
             Q(customer_user=user) | Q(business_user=user)
         ).order_by('-created_at')
+
+    def create(self, request, *args, **kwargs):
+
+        offer_detail_id = request.data.get('offer_detail_id')
+        if not offer_detail_id:
+            return Response(
+                {"detail": "Ungültige Anfragedaten ('offer_detail_id' fehlt oder ungültig ist)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            offer_detail = OfferDetail.objects.get(id=offer_detail_id)
+        except OfferDetail.DoesNotExist:
+            return Response(
+                {"detail": "Das angegebene Angebotsdetail wurde nicht gefunden."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        business_user = offer_detail.offer.user
+
+        order = Order.objects.create(
+            customer_user=request.user,
+            business_user=business_user,
+            title=offer_detail.title,
+            revisions=offer_detail.revisions,
+            delivery_time_in_days=offer_detail.delivery_time_in_days,
+            price=offer_detail.price,
+            features=offer_detail.features,
+            offer_type=offer_detail.offer_type,
+            status='in_progress'
+        )
+
+        serializer = self.get_serializer(order)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
