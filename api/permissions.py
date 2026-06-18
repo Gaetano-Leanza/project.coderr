@@ -39,3 +39,12 @@ class IsCustomer(permissions.BasePermission):
             return request.user.profile.type == 'customer'
         except AttributeError:
             return False
+
+
+class IsOrderParticipant(permissions.BasePermission):
+
+    message = "Benutzer hat keine Berechtigung, diese Bestellung zu aktualisieren."
+
+    def has_object_permission(self, request, view, obj):
+
+        return obj.customer_user == request.user or obj.business_user == request.user
