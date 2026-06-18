@@ -23,7 +23,7 @@ from api.views import (
     LoginView,
     ProfileDetailView,
     OfferListView,
-    OfferDetailView, SingleOfferDetailView, OrderListCreateView
+    OfferDetailView, SingleOfferDetailView, OrderListCreateView, OrderDetailView
 )
 
 urlpatterns = [
@@ -40,4 +40,5 @@ urlpatterns = [
     path('api/offerdetails/<int:pk>/',
          SingleOfferDetailView.as_view(), name='offerdetail-detail'),
     path('api/orders/', OrderListCreateView.as_view(), name='order-list'),
+    path('api/orders/<int:pk>/', OrderDetailView.as_view(), name='order-detail'),
 ]
