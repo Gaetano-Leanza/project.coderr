@@ -1,7 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics, filters
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from .models import Profile, Offer, OfferDetail, Order
@@ -13,7 +12,7 @@ from .serializers import (
     OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer, OrderSerializer
 )
 from .pagination import OfferPagination
-from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer
+from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer, IsOrderParticipant
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
 from django.db.models import Q
 
@@ -190,3 +189,32 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class OrderDetailView(generics.RetrieveUpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated, IsOrderParticipant]
+
+    def update(self, request, *args, **kwargs):
+        # 1. Check auf unzulässige Felder (Darf NUR 'status' enthalten)
+        allowed_fields = {'status'}
+        request_keys = set(request.data.keys())
+
+        if not request_keys.issubset(allowed_fields) or not request_keys:
+            return Response(
+                {"detail": "Ungültiger Status oder unzulässige Felder in der Anfrage."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+ 
+        new_status = request.data.get('status')
+        valid_statuses = ['in_progress', 'completed', 'cancelled']
+
+        if new_status not in valid_statuses:
+            return Response(
+                {"detail": "Ungültiger Status oder unzulässige Felder in der Anfrage."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().update(request, *args, **kwargs)
