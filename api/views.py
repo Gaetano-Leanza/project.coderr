@@ -13,7 +13,7 @@ from .serializers import (
 )
 from .pagination import OfferPagination
 from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer, IsOrderParticipant
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, IsAdminUser
 from django.db.models import Q
 
 
@@ -191,13 +191,18 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class OrderDetailView(generics.RetrieveUpdateAPIView):
+class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated, IsOrderParticipant]
+
+    def get_permissions(self):
+        if self.request.method == 'DELETE':
+            return [IsAdminUser()]
+
+        return [IsAuthenticated(), IsOrderParticipant()]
 
     def update(self, request, *args, **kwargs):
-        # 1. Check auf unzulässige Felder (Darf NUR 'status' enthalten)
+
         allowed_fields = {'status'}
         request_keys = set(request.data.keys())
 
@@ -207,7 +212,6 @@ class OrderDetailView(generics.RetrieveUpdateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
- 
         new_status = request.data.get('status')
         valid_statuses = ['in_progress', 'completed', 'cancelled']
 
