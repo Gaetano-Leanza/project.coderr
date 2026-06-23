@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import OfferDetail, Profile, Offer, Order
+from .models import Profile, Offer, OfferDetail, Order, Review
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -247,3 +247,10 @@ class OrderSerializer(serializers.ModelSerializer):
             'features', 'offer_type', 'status',
             'created_at', 'updated_at'
         ]
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ['id', 'business_user', 'reviewer', 'rating',
+                  'description', 'created_at', 'updated_at']
