@@ -3,13 +3,13 @@ from rest_framework.response import Response
 from rest_framework import status, generics, filters
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .models import Profile, Offer, OfferDetail, Order
+from .models import Profile, Offer, OfferDetail, Order, Review
 from .serializers import (
     RegistrationSerializer,
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer, OrderSerializer
+    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer, OrderSerializer, ReviewSerializer
 )
 from .pagination import OfferPagination
 from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer, IsOrderParticipant
@@ -267,3 +267,34 @@ class CompletedOrderCountView(APIView):
         ).count()
 
         return Response({"completed_order_count": count}, status=status.HTTP_200_OK)
+
+
+class ReviewListView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['updated_at', 'rating']
+
+    def get_queryset(self):
+        queryset = Review.objects.all()
+
+        business_user_id = self.request.query_params.get('business_user_id')
+        reviewer_id = self.request.query_params.get('reviewer_id')
+
+        if business_user_id is not None:
+            queryset = queryset.filter(business_user_id=int(business_user_id))
+
+        if reviewer_id is not None:
+            queryset = queryset.filter(reviewer_id=int(reviewer_id))
+
+        return queryset
+
+    def list(self, request, *args, **kwargs):
+
+        try:
+            return super().list(request, *args, **kwargs)
+        except ValueError:
+            return Response(
+                {"detail": "Ungültige Anfrageparameter."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
