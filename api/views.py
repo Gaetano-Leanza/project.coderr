@@ -16,6 +16,7 @@ from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, I
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, IsAdminUser
 from django.db.models import Q
 from django.contrib.auth.models import User
+from rest_framework.exceptions import ValidationError, PermissionDenied
 
 
 class RegistrationView(APIView):
@@ -269,7 +270,7 @@ class CompletedOrderCountView(APIView):
         return Response({"completed_order_count": count}, status=status.HTTP_200_OK)
 
 
-class ReviewListView(generics.ListAPIView):
+class ReviewListCreateView(generics.ListCreateAPIView):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
@@ -277,20 +278,17 @@ class ReviewListView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = Review.objects.all()
-
         business_user_id = self.request.query_params.get('business_user_id')
         reviewer_id = self.request.query_params.get('reviewer_id')
 
         if business_user_id is not None:
             queryset = queryset.filter(business_user_id=int(business_user_id))
-
         if reviewer_id is not None:
             queryset = queryset.filter(reviewer_id=int(reviewer_id))
 
         return queryset
 
     def list(self, request, *args, **kwargs):
-
         try:
             return super().list(request, *args, **kwargs)
         except ValueError:
@@ -298,3 +296,17 @@ class ReviewListView(generics.ListAPIView):
                 {"detail": "Ungültige Anfrageparameter."},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        if getattr(user, 'profile', None) is None or user.profile.type != 'customer':
+            raise PermissionDenied("Nur Kunden dürfen Bewertungen erstellen.")
+
+        business_user = serializer.validated_data.get('business_user')
+
+        if Review.objects.filter(reviewer=user, business_user=business_user).exists():
+            raise ValidationError(
+                "Du hast diesen Geschäftsnutzer bereits bewertet.")
+
+        serializer.save(reviewer=user)
