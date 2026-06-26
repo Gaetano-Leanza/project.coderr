@@ -52,5 +52,5 @@ class IsOrderParticipant(permissions.BasePermission):
 
 class IsReviewCreator(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
-        # Erlaubt den Zugriff nur, wenn der anfragende User auch der Ersteller (reviewer) ist
+
         return obj.reviewer == request.user

@@ -12,7 +12,7 @@ from .serializers import (
     OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer, OrderSerializer, ReviewSerializer
 )
 from .pagination import OfferPagination
-from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer, IsOrderParticipant
+from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer, IsOrderParticipant, IsReviewCreator
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, IsAdminUser
 from django.db.models import Q
 from django.contrib.auth.models import User
@@ -310,3 +310,24 @@ class ReviewListCreateView(generics.ListCreateAPIView):
                 "Du hast diesen Geschäftsnutzer bereits bewertet.")
 
         serializer.save(reviewer=user)
+
+
+class ReviewDetailView(generics.RetrieveUpdateAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+  
+    permission_classes = [IsAuthenticated, IsReviewCreator]
+
+    def update(self, request, *args, **kwargs):
+       
+        allowed_fields = {'rating', 'description'}
+        request_keys = set(request.data.keys())
+
+        if not request_keys.issubset(allowed_fields) or not request_keys:
+            return Response(
+                {"detail": "Der Anfrage-Body enthält ungültige Daten. Nur 'rating' und 'description' sind editierbar."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return super().update(request, *args, **kwargs)
