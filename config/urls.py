@@ -23,7 +23,7 @@ from api.views import (
     LoginView,
     ProfileDetailView,
     OfferListView,
-    OfferDetailView, SingleOfferDetailView, OrderListCreateView, OrderDetailView, OrderCountView, CompletedOrderCountView, ReviewListCreateView, ReviewDetailView
+    OfferDetailView, SingleOfferDetailView, OrderListCreateView, OrderDetailView, OrderCountView, CompletedOrderCountView, ReviewListCreateView, ReviewDetailView, BaseInfoView
 )
 
 
@@ -48,4 +48,5 @@ urlpatterns = [
          CompletedOrderCountView.as_view(), name='completed-order-count'),
     path('api/reviews/', ReviewListCreateView.as_view(), name='review-list-create'),
     path('api/reviews/<int:pk>/', ReviewDetailView.as_view(), name='review-detail'),
+    path('api/base-info/', BaseInfoView.as_view(), name='base-info'),
 ]
