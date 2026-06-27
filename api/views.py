@@ -312,11 +312,10 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         serializer.save(reviewer=user)
 
 
-class ReviewDetailView(generics.RetrieveUpdateAPIView):
+class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView): 
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
-  
     permission_classes = [IsAuthenticated, IsReviewCreator]
 
     def update(self, request, *args, **kwargs):
