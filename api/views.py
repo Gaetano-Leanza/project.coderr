@@ -1,3 +1,11 @@
+"""
+API Views for the application.
+
+This module contains all the class-based views (CBVs) for the Django REST Framework API.
+It handles user authentication, profile management, offer creation and filtering,
+order processing, and the review system.
+"""
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics, filters
@@ -9,20 +17,53 @@ from .serializers import (
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer, OfferCreateSerializer, SingleOfferSerializer, OfferPatchSerializer, OfferDetailSerializer, OrderSerializer, ReviewSerializer
+    OfferSerializer, 
+    OfferCreateSerializer, 
+    SingleOfferSerializer, 
+    OfferPatchSerializer, 
+    OfferDetailSerializer, 
+    OrderSerializer, 
+    ReviewSerializer
 )
 from .pagination import OfferPagination
-from .permissions import IsOwnerProfile, IsBusinessProfile, IsOwnerOrReadOnly, IsCustomer, IsOrderParticipant, IsReviewCreator
+from .permissions import (
+    IsOwnerProfile, 
+    IsBusinessProfile, 
+    IsOwnerOrReadOnly, 
+    IsCustomer, 
+    IsOrderParticipant, 
+    IsReviewCreator
+)
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, IsAdminUser
 from django.db.models import Q
 from django.contrib.auth.models import User
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from django.db.models import Avg
-from rest_framework.permissions import AllowAny
 
+
+# ==========================================
+# Authentication Views
+# ==========================================
 
 class RegistrationView(APIView):
+    """
+    Handles new user registration.
+    
+    Accepts user details, creates a new User instance, and generates an 
+    authentication token for immediate login.
+    """
     def post(self, request):
+        """
+        Processes the registration request.
+
+        Args:
+            request: The HTTP request containing registration data.
+
+        Returns:
+            Response: A JSON object containing the user's token, username, 
+                email, and user_id upon successful creation (HTTP 201), 
+                or validation errors (HTTP 400).
+        """
         serializer = RegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -39,7 +80,21 @@ class RegistrationView(APIView):
 
 
 class LoginView(APIView):
+    """
+    Handles user authentication and login.
+    """
     def post(self, request):
+        """
+        Authenticates a user and returns their token.
+
+        Args:
+            request: The HTTP request containing 'username' and 'password'.
+
+        Returns:
+            Response: A JSON object containing the auth token and basic user 
+                info (HTTP 200), or an error message if credentials are 
+                invalid (HTTP 400).
+        """
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             username = serializer.validated_data['username']
@@ -61,41 +116,82 @@ class LoginView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# ==========================================
+# Profile Views
+# ==========================================
+
 class ProfileDetailView(generics.RetrieveUpdateAPIView):
+    """
+    Retrieves or updates a specific user profile.
+    
+    Permissions:
+        - Must be authenticated.
+        - Must be the owner of the profile to update it.
+    """
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated, IsOwnerProfile]
 
 
 class BusinessProfileListView(generics.ListAPIView):
+    """
+    Retrieves a list of all business profiles.
+    
+    Permissions:
+        - Must be authenticated.
+    """
     queryset = Profile.objects.filter(type='business')
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated]
 
 
 class CustomerProfileListView(generics.ListAPIView):
+    """
+    Retrieves a list of all customer profiles.
+    
+    Permissions:
+        - Must be authenticated.
+    """
     queryset = Profile.objects.filter(type='customer')
     serializer_class = CustomerListSerializer
     permission_classes = [IsAuthenticated]
 
 
+# ==========================================
+# Offer Views
+# ==========================================
+
 class OfferListView(generics.ListCreateAPIView):
+    """
+    Handles listing all offers and creating new ones.
+    
+    Features pagination, search, and custom filtering based on query parameters.
+    """
     pagination_class = OfferPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description']
     ordering_fields = ['updated_at', 'min_price']
 
     def get_serializer_class(self):
+        """Returns different serializers based on the request method."""
         if self.request.method == 'POST':
             return OfferCreateSerializer
         return OfferSerializer
 
     def get_permissions(self):
+        """
+        Dynamically assigns permissions.
+        - POST: Only authenticated business profiles can create offers.
+        - GET: Anyone (even guests) can view the offer list.
+        """
         if self.request.method == 'POST':
             return [IsAuthenticated(), IsBusinessProfile()]
         return [AllowAny()]
 
     def get_queryset(self):
+        """
+        Filters the queryset based on URL query parameters.
+        """
         queryset = Offer.objects.all()
 
         creator_id = self.request.query_params.get('creator_id')
@@ -109,12 +205,12 @@ class OfferListView(generics.ListCreateAPIView):
             queryset = queryset.filter(min_price__gte=float(min_price))
 
         if max_delivery_time is not None:
-            queryset = queryset.filter(
-                min_delivery_time__lte=int(max_delivery_time))
+            queryset = queryset.filter(min_delivery_time__lte=int(max_delivery_time))
 
         return queryset
 
     def list(self, request, *args, **kwargs):
+        """Overrides the default list method to handle invalid query parameters gracefully."""
         try:
             return super().list(request, *args, **kwargs)
         except ValueError:
@@ -125,43 +221,69 @@ class OfferListView(generics.ListCreateAPIView):
 
 
 class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieves, updates, or deletes a specific offer.
+    
+    Permissions:
+        - Read operations are open to authenticated users.
+        - Write/Delete operations require the user to own the offer.
+    """
     queryset = Offer.objects.all()
     lookup_field = 'pk'
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
     def get_serializer_class(self):
+        """Uses a specialized serializer for partial updates (PATCH/PUT)."""
         if self.request.method in ['PATCH', 'PUT']:
             return OfferPatchSerializer
         return SingleOfferSerializer
 
 
 class SingleOfferDetailView(generics.RetrieveAPIView):
+    """
+    Retrieves a specific offer detail (sub-component of an offer).
+    """
     queryset = OfferDetail.objects.all()
     serializer_class = OfferDetailSerializer
     permission_classes = [IsAuthenticated]
 
 
+# ==========================================
+# Order Views
+# ==========================================
+
 class OrderListCreateView(generics.ListCreateAPIView):
+    """
+    Handles retrieving a user's orders or creating a new order.
+    """
     serializer_class = OrderSerializer
 
     def get_permissions(self):
         """
-        Für GET (Liste anzeigen) reicht es, eingeloggt zu sein.
-        Für POST (Bestellung erstellen) MUSS man zusätzlich 'customer' sein.
+        - GET: Any authenticated user can view their list.
+        - POST: Only customers can place orders.
         """
         if self.request.method == 'POST':
             return [IsAuthenticated(), IsCustomer()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
-
+        """Returns orders where the current user is either the customer or the business."""
         user = self.request.user
         return Order.objects.filter(
             Q(customer_user=user) | Q(business_user=user)
         ).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
+        """
+        Creates a new order based on a specific OfferDetail ID.
 
+        Args:
+            request: The HTTP request containing 'offer_detail_id'.
+
+        Returns:
+            Response: The newly created order data (HTTP 201) or an error (HTTP 400/404).
+        """
         offer_detail_id = request.data.get('offer_detail_id')
         if not offer_detail_id:
             return Response(
@@ -196,17 +318,26 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
 
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieves, updates, or deletes a specific order.
+    """
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
     def get_permissions(self):
+        """
+        - DELETE: Strictly reserved for Admins.
+        - GET/PATCH/PUT: User must be a participant in the order.
+        """
         if self.request.method == 'DELETE':
             return [IsAdminUser()]
 
         return [IsAuthenticated(), IsOrderParticipant()]
 
     def update(self, request, *args, **kwargs):
-
+        """
+        Restricts updates to the 'status' field only and validates the state.
+        """
         allowed_fields = {'status'}
         request_keys = set(request.data.keys())
 
@@ -229,10 +360,12 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class OrderCountView(APIView):
+    """
+    Retrieves the count of 'in_progress' orders for a specific business user.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_user_id):
-
         try:
             business_user = User.objects.get(
                 id=business_user_id, profile__type='business')
@@ -251,10 +384,12 @@ class OrderCountView(APIView):
 
 
 class CompletedOrderCountView(APIView):
+    """
+    Retrieves the count of 'completed' orders for a specific business user.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_user_id):
-
         try:
             business_user = User.objects.get(
                 id=business_user_id, profile__type='business')
@@ -272,13 +407,21 @@ class CompletedOrderCountView(APIView):
         return Response({"completed_order_count": count}, status=status.HTTP_200_OK)
 
 
+# ==========================================
+# Review Views
+# ==========================================
+
 class ReviewListCreateView(generics.ListCreateAPIView):
+    """
+    Handles listing and filtering reviews, as well as creating new ones.
+    """
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['updated_at', 'rating']
 
     def get_queryset(self):
+        """Filters reviews by business_user_id or reviewer_id if provided."""
         queryset = Review.objects.all()
         business_user_id = self.request.query_params.get('business_user_id')
         reviewer_id = self.request.query_params.get('reviewer_id')
@@ -291,6 +434,7 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         return queryset
 
     def list(self, request, *args, **kwargs):
+        """Overrides list to catch invalid parameters."""
         try:
             return super().list(request, *args, **kwargs)
         except ValueError:
@@ -300,6 +444,11 @@ class ReviewListCreateView(generics.ListCreateAPIView):
             )
 
     def perform_create(self, serializer):
+        """
+        Validates business rules before saving a new review:
+        1. Only customers can leave reviews.
+        2. A customer can only review a specific business user once.
+        """
         user = self.request.user
 
         if getattr(user, 'profile', None) is None or user.profile.type != 'customer':
@@ -308,20 +457,25 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         business_user = serializer.validated_data.get('business_user')
 
         if Review.objects.filter(reviewer=user, business_user=business_user).exists():
-            raise ValidationError(
-                "Du hast diesen Geschäftsnutzer bereits bewertet.")
+            raise ValidationError("Du hast diesen Geschäftsnutzer bereits bewertet.")
 
         serializer.save(reviewer=user)
 
 
 class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView): 
+    """
+    Retrieves, updates, or deletes a specific review.
+    
+    Permissions:
+        - Must be the creator of the review to modify or delete it.
+    """
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
 
     permission_classes = [IsAuthenticated, IsReviewCreator]
 
     def update(self, request, *args, **kwargs):
-       
+        """Restricts updates to 'rating' and 'description' fields only."""
         allowed_fields = {'rating', 'description'}
         request_keys = set(request.data.keys())
 
@@ -334,14 +488,26 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().update(request, *args, **kwargs)
     
 
-class BaseInfoView(APIView):
+# ==========================================
+# Platform Statistics
+# ==========================================
 
+class BaseInfoView(APIView):
+    """
+    Retrieves aggregated platform statistics.
+    
+    This endpoint is public and requires no authentication.
+    """
     permission_classes = [AllowAny]
 
     def get(self, request):
-       
+        """
+        Calculates and returns total reviews, average rating, 
+        number of business profiles, and total offers.
+        """
         review_count = Review.objects.count()
 
+        # Aggregate calculates the mean of the 'rating' column
         avg_rating_data = Review.objects.aggregate(Avg('rating'))
         average_rating = avg_rating_data['rating__avg']
         
@@ -349,7 +515,6 @@ class BaseInfoView(APIView):
             average_rating = round(average_rating, 1)
         else:
             average_rating = 0.0
-
 
         business_profile_count = Profile.objects.filter(type='business').count()
 

@@ -1,9 +1,24 @@
+"""
+Serializers for the API application.
+
+This module converts complex data types, such as Django model instances, into 
+native Python datatypes that can then be easily rendered into JSON. It also 
+provides deserialization, validating incoming parsed data before saving it 
+to the database.
+"""
+
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Profile, Offer, OfferDetail, Order, Review
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling new user registrations.
+    
+    Validates the user's email and password, creates the core User object, 
+    and automatically generates the corresponding Profile.
+    """
     repeated_password = serializers.CharField(write_only=True)
     type = serializers.CharField(write_only=True)
 
@@ -16,6 +31,21 @@ class RegistrationSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, data):
+        """
+        Validates the provided registration data.
+
+        Checks that the passwords match and that the email address is 
+        not already registered in the system.
+
+        Args:
+            data (dict): The unvalidated dictionary of input data.
+
+        Raises:
+            serializers.ValidationError: If passwords mismatch or email exists.
+
+        Returns:
+            dict: The validated data.
+        """
         if data['password'] != data['repeated_password']:
             raise serializers.ValidationError(
                 {"password": "Passwörter stimmen nicht überein."})
@@ -25,6 +55,15 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        """
+        Creates a new User and their linked Profile.
+
+        Args:
+            validated_data (dict): The cleaned and validated incoming data.
+
+        Returns:
+            User: The newly created User instance.
+        """
         validated_data.pop('repeated_password')
         user_type = validated_data.pop('type')
 
@@ -43,12 +82,21 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
+    """
+    Serializer for user authentication.
+    
+    Simply accepts and validates the presence of a username and password.
+    """
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for retrieving and updating user profiles.
+    
+    Includes read-only fields pulled directly from the associated User model.
+    """
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.CharField(source='user.email', read_only=True)
 
@@ -61,7 +109,12 @@ class ProfileSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        """Übersetzt None-Werte strikt in leere Strings ("") für das Frontend."""
+        """
+        Customizes the serialized output.
+
+        Translates `None` values strictly to empty strings ("") to prevent 
+        rendering issues or crashes in frontend frameworks.
+        """
         data = super().to_representation(instance)
         for key, value in data.items():
             if value is None:
@@ -70,6 +123,11 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 class CustomerListSerializer(serializers.ModelSerializer):
+    """
+    Serializer specifically for listing customer profiles.
+    
+    Provides a condensed view of the profile data suitable for list displays.
+    """
     username = serializers.CharField(source='user.username', read_only=True)
     uploaded_at = serializers.DateTimeField(
         source='created_at', read_only=True)
@@ -82,7 +140,12 @@ class CustomerListSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
-        """Sorgt auch hier dafür, dass None zu einem leeren String wird."""
+        """
+        Customizes the serialized output.
+
+        Ensures that specific string fields return empty strings ("") 
+        instead of `None`.
+        """
         data = super().to_representation(instance)
         string_fields = ['first_name', 'last_name', 'file']
         for field in string_fields:
@@ -92,7 +155,12 @@ class CustomerListSerializer(serializers.ModelSerializer):
 
 
 class OfferSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for listing Offers.
+    
+    Includes dynamically constructed custom fields for user details 
+    and nested offer details.
+    """
     user_details = serializers.SerializerMethodField()
     details = serializers.SerializerMethodField()
 
@@ -105,7 +173,9 @@ class OfferSerializer(serializers.ModelSerializer):
         ]
 
     def get_user_details(self, obj):
-        """Baut das geforderte user_details Objekt aus dem verknüpften User zusammen."""
+        """
+        Constructs a dictionary containing the offer creator's basic info.
+        """
         return {
             "first_name": obj.user.first_name,
             "last_name": obj.user.last_name,
@@ -113,18 +183,23 @@ class OfferSerializer(serializers.ModelSerializer):
         }
 
     def get_details(self, obj):
-        """Greift über den related_name 'details' auf alle OfferDetails zu."""
+        """
+        Retrieves related OfferDetails using the 'details' related_name.
+        Returns a list of dictionaries with IDs and relative URLs.
+        """
         return [
             {
                 "id": detail.id,
                 "url": f"/offerdetails/{detail.id}/"
             }
-
             for detail in obj.details.all()
         ]
 
 
 class OfferDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the sub-components (pricing tiers) of an Offer.
+    """
     class Meta:
         model = OfferDetail
         fields = ['id', 'title', 'revisions',
@@ -132,7 +207,9 @@ class OfferDetailSerializer(serializers.ModelSerializer):
 
 
 class OfferCreateSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for creating a new Offer alongside its nested OfferDetails.
+    """
     details = OfferDetailSerializer(many=True)
 
     class Meta:
@@ -140,7 +217,12 @@ class OfferCreateSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'image', 'description', 'details']
 
     def validate_details(self, value):
-        """Prüft, ob exakt 3 Details mitgeschickt wurden und ob die Typen stimmen."""
+        """
+        Validates the incoming nested details array.
+
+        Ensures that exactly three pricing tiers are provided and that they 
+        strictly match the required types: 'basic', 'standard', and 'premium'.
+        """
         if len(value) != 3:
             raise serializers.ValidationError(
                 "Ein Offer muss genau 3 Details enthalten!")
@@ -152,7 +234,13 @@ class OfferCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        """Überschreibt die Standard-Erstellung, um verschachtelte Daten zu speichern."""
+        """
+        Overrides the default create method to handle nested object creation.
+
+        Calculates the minimum price and minimum delivery time from the provided 
+        details, creates the parent Offer, and then creates the three child 
+        OfferDetail records.
+        """
         details_data = validated_data.pop('details')
         user = self.context['request'].user
 
@@ -174,12 +262,14 @@ class OfferCreateSerializer(serializers.ModelSerializer):
 
 
 class SingleOfferSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving a single, highly detailed Offer view.
+    """
     details = serializers.SerializerMethodField()
     min_price = serializers.FloatField()
 
     class Meta:
         model = Offer
-
         fields = [
             'id', 'user', 'title', 'image', 'description',
             'created_at', 'updated_at', 'details',
@@ -187,7 +277,10 @@ class SingleOfferSerializer(serializers.ModelSerializer):
         ]
 
     def get_details(self, obj):
-
+        """
+        Retrieves related OfferDetails and constructs absolute URIs 
+        for their endpoints based on the current request context.
+        """
         request = self.context.get('request')
 
         return [
@@ -200,7 +293,9 @@ class SingleOfferSerializer(serializers.ModelSerializer):
 
 
 class OfferPatchSerializer(serializers.ModelSerializer):
-
+    """
+    Serializer for handling partial updates (PATCH) to an Offer and its details.
+    """
     details = OfferDetailSerializer(many=True, required=False)
 
     class Meta:
@@ -209,25 +304,33 @@ class OfferPatchSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
     def update(self, instance, validated_data):
+        """
+        Overrides the default update method to manage nested details safely.
 
+        Updates the parent Offer fields, then iterates through any provided 
+        nested details to perform an 'update_or_create'. Finally, it recalculates 
+        and saves the minimum price and delivery time for the parent Offer.
+        """
         details_data = validated_data.pop('details', None)
 
+        # Update the main Offer instance
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
+        # Update or create nested OfferDetails if provided
         if details_data is not None:
             for detail_item in details_data:
                 offer_type = detail_item.get('offer_type')
 
                 if offer_type:
-
                     OfferDetail.objects.update_or_create(
                         offer=instance,
                         offer_type=offer_type,
                         defaults=detail_item
                     )
 
+            # Recalculate minimum values across all details
             current_details = instance.details.all()
             if current_details.exists():
                 instance.min_price = min([d.price for d in current_details])
@@ -239,6 +342,9 @@ class OfferPatchSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    """
+    Serializer for managing customer Orders.
+    """
     class Meta:
         model = Order
         fields = [
@@ -250,6 +356,9 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling user Reviews on business profiles.
+    """
     class Meta:
         model = Review
         fields = ['id', 'business_user', 'reviewer', 'rating',
