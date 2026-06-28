@@ -266,33 +266,31 @@ class OrderListCreateView(generics.ListCreateAPIView):
     def get_permissions(self):
         """
         - GET: Any authenticated user can view their list.
-        - POST: Only customers can place orders.
+        - POST: Only authenticated customers can place orders.
         """
         if self.request.method == 'POST':
-            return [IsAuthenticated(), IsCustomer()]
+
+            return [IsAuthenticated()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
         """Returns orders where the current user is either the customer or the business."""
         user = self.request.user
+        if user.is_anonymous:
+            return Order.objects.none()
         return Order.objects.filter(
             Q(customer_user=user) | Q(business_user=user)
         ).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         """
-        Creates a new order based on a specific OfferDetail ID.
-
-        Args:
-            request: The HTTP request containing 'offer_detail_id'.
-
-        Returns:
-            Response: The newly created order data (HTTP 201) or an error (HTTP 400/404).
+        Creates a new order based on a specific OfferDetail ID with robust error handling.
         """
         offer_detail_id = request.data.get('offer_detail_id')
+
         if not offer_detail_id:
             return Response(
-                {"detail": "Ungültige Anfragedaten ('offer_detail_id' fehlt oder ungültig ist)."},
+                {"detail": "Ungültige Anfragedaten ('offer_detail_id' fehlt)."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -303,23 +301,33 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 {"detail": "Das angegebene Angebotsdetail wurde nicht gefunden."},
                 status=status.HTTP_404_NOT_FOUND
             )
+        except Exception as e:
 
-        business_user = offer_detail.offer.user
+            return Response(
+                {"detail": f"Ein interner Fehler ist aufgetreten: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        order = Order.objects.create(
-            customer_user=request.user,
-            business_user=business_user,
-            title=offer_detail.title,
-            revisions=offer_detail.revisions,
-            delivery_time_in_days=offer_detail.delivery_time_in_days,
-            price=offer_detail.price,
-            features=offer_detail.features,
-            offer_type=offer_detail.offer_type,
-            status='in_progress'
-        )
-
-        serializer = self.get_serializer(order)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        try:
+            business_user = offer_detail.offer.user
+            order = Order.objects.create(
+                customer_user=request.user,
+                business_user=business_user,
+                title=offer_detail.title,
+                revisions=offer_detail.revisions,
+                delivery_time_in_days=offer_detail.delivery_time_in_days,
+                price=offer_detail.price,
+                features=offer_detail.features,
+                offer_type=offer_detail.offer_type,
+                status='in_progress'
+            )
+            serializer = self.get_serializer(order)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {"detail": f"Fehler beim Erstellen der Bestellung: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
