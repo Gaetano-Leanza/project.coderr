@@ -6,30 +6,28 @@ models, views, and core logic using Django's built-in testing framework.
 """
 
 from django.test import TestCase
+from django.contrib.auth.models import User
+from .models import Profile
 
-# ==========================================
-# Example Test Suite
-# ==========================================
 
-class ExampleTest(TestCase):
-    """
-    Example test suite to demonstrate the testing structure.
-    
-    Test classes should group tests that relate to a specific 
-    model, view, or feature.
-    """
-
+class ProfileTest(TestCase):
     def setUp(self):
-        """
-        Sets up the required test environment before each individual test runs.
-        """
-        pass
 
-    def test_example_logic(self):
-        """
-        Verifies that basic internal logic executes correctly.
-        
-        Note: Test methods MUST begin with the prefix 'test_' 
-        for the test runner to recognize them.
-        """
-        self.assertTrue(True)
+        self.user1 = User.objects.create_user(
+            username='paul', email='pauline82@test.com', password='pw')
+        self.profile1 = Profile.objects.create(
+            user=self.user1, type='customer')
+
+        self.user2 = User.objects.create_user(
+            username='marie', email='marie27@test.com', password='pw')
+        self.profile2 = Profile.objects.create(
+            user=self.user2, type='customer')
+
+    def test_profile_email_update(self):
+
+        self.client.force_login(self.user1)
+
+        response = self.client.patch(
+            f'/api/profile/{self.profile1.pk}/', {'email': 'pauline82@test.com'})
+
+        self.assertEqual(response.data['email'], 'pauline82@test.com')

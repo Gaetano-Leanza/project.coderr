@@ -15,7 +15,7 @@ from .models import Profile, Offer, OfferDetail, Order, Review
 class RegistrationSerializer(serializers.ModelSerializer):
     """
     Serializer for handling new user registrations.
-    
+
     Validates the user's email and password, creates the core User object, 
     and automatically generates the corresponding Profile.
     """
@@ -84,7 +84,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     """
     Serializer for user authentication.
-    
+
     Simply accepts and validates the presence of a username and password.
     """
     username = serializers.CharField()
@@ -94,11 +94,12 @@ class LoginSerializer(serializers.Serializer):
 class ProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for retrieving and updating user profiles.
-    
+
     Includes read-only fields pulled directly from the associated User model.
     """
     username = serializers.CharField(source='user.username', read_only=True)
-    email = serializers.CharField(source='user.email', read_only=True)
+
+    email = serializers.CharField(source='user.email')
 
     class Meta:
         model = Profile
@@ -107,6 +108,21 @@ class ProfileSerializer(serializers.ModelSerializer):
             'location', 'tel', 'description', 'working_hours',
             'type', 'email', 'created_at'
         ]
+
+    def update(self, instance, validated_data):
+        """
+        Aktualisiert das Profil und stellt sicher, dass die E-Mail 
+        korrekt im verknüpften User-Objekt gespeichert wird.
+        """
+
+        user_data = validated_data.pop('user', {})
+        email = validated_data.get('email')
+
+        if email:
+            instance.user.email = email
+            instance.user.save()
+
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         """
@@ -125,7 +141,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 class CustomerListSerializer(serializers.ModelSerializer):
     """
     Serializer specifically for listing customer profiles.
-    
+
     Provides a condensed view of the profile data suitable for list displays.
     """
     username = serializers.CharField(source='user.username', read_only=True)
@@ -157,7 +173,7 @@ class CustomerListSerializer(serializers.ModelSerializer):
 class OfferSerializer(serializers.ModelSerializer):
     """
     Serializer for listing Offers.
-    
+
     Includes dynamically constructed custom fields for user details 
     and nested offer details.
     """
