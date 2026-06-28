@@ -233,7 +233,7 @@ class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     queryset = Offer.objects.all()
     lookup_field = 'pk'
-    permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
 
     def get_serializer_class(self):
         """
