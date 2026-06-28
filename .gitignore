@@ -1,0 +1,21 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+
+# Python-Dateien
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtuelle Umgebungen (sehr wichtig!)
+venv/
+env/
+.env/
+
+# Datenbanken (SQLite darf nicht hochgeladen werden)
+db.sqlite3
+
+# IDE-Einstellungen
+.vscode/
+.idea/
+
+# Umgebungsvariablen (NIEMALS echte Keys hochladen)
+.env
