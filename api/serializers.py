@@ -360,6 +360,7 @@ class OfferPatchSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     """
     Serializer for managing customer Orders.
+    Includes validation to prevent creation of orders with missing essential data.
     """
     class Meta:
         model = Order
@@ -369,6 +370,24 @@ class OrderSerializer(serializers.ModelSerializer):
             'features', 'offer_type', 'status',
             'created_at', 'updated_at'
         ]
+
+        read_only_fields = ['id', 'customer_user',
+                            'business_user', 'created_at', 'updated_at']
+
+    def validate(self, data):
+        """
+        Validates that critical order fields are present and valid.
+        """
+
+        if not data.get('title'):
+            raise serializers.ValidationError(
+                {"title": "Ein Titel für die Bestellung ist erforderlich."})
+
+        if data.get('price', 0) < 0:
+            raise serializers.ValidationError(
+                {"price": "Der Preis darf nicht negativ sein."})
+
+        return data
 
 
 class ReviewSerializer(serializers.ModelSerializer):
