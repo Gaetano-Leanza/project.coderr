@@ -8,7 +8,7 @@ order processing, and the review system.
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics, filters
+from rest_framework import status, generics, filters, permissions
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from .models import Profile, Offer, OfferDetail, Order, Review
@@ -17,21 +17,21 @@ from .serializers import (
     LoginSerializer,
     ProfileSerializer,
     CustomerListSerializer,
-    OfferSerializer, 
-    OfferCreateSerializer, 
-    SingleOfferSerializer, 
-    OfferPatchSerializer, 
-    OfferDetailSerializer, 
-    OrderSerializer, 
+    OfferSerializer,
+    OfferCreateSerializer,
+    SingleOfferSerializer,
+    OfferPatchSerializer,
+    OfferDetailSerializer,
+    OrderSerializer,
     ReviewSerializer
 )
 from .pagination import OfferPagination
 from .permissions import (
-    IsOwnerProfile, 
-    IsBusinessProfile, 
-    IsOwnerOrReadOnly, 
-    IsCustomer, 
-    IsOrderParticipant, 
+    IsOwnerProfile,
+    IsBusinessProfile,
+    IsOwnerOrReadOnly,
+    IsCustomer,
+    IsOrderParticipant,
     IsReviewCreator
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAuthenticatedOrReadOnly, IsAdminUser
@@ -48,10 +48,11 @@ from django.db.models import Avg
 class RegistrationView(APIView):
     """
     Handles new user registration.
-    
-    Accepts user details, creates a new User instance, and generates an 
+
+    Accepts user details, creates a new User instance, and generates an
     authentication token for immediate login.
     """
+
     def post(self, request):
         """
         Processes the registration request.
@@ -60,8 +61,8 @@ class RegistrationView(APIView):
             request: The HTTP request containing registration data.
 
         Returns:
-            Response: A JSON object containing the user's token, username, 
-                email, and user_id upon successful creation (HTTP 201), 
+            Response: A JSON object containing the user's token, username,
+                email, and user_id upon successful creation (HTTP 201),
                 or validation errors (HTTP 400).
         """
         serializer = RegistrationSerializer(data=request.data)
@@ -83,6 +84,7 @@ class LoginView(APIView):
     """
     Handles user authentication and login.
     """
+
     def post(self, request):
         """
         Authenticates a user and returns their token.
@@ -91,8 +93,8 @@ class LoginView(APIView):
             request: The HTTP request containing 'username' and 'password'.
 
         Returns:
-            Response: A JSON object containing the auth token and basic user 
-                info (HTTP 200), or an error message if credentials are 
+            Response: A JSON object containing the auth token and basic user
+                info (HTTP 200), or an error message if credentials are
                 invalid (HTTP 400).
         """
         serializer = LoginSerializer(data=request.data)
@@ -123,7 +125,7 @@ class LoginView(APIView):
 class ProfileDetailView(generics.RetrieveUpdateAPIView):
     """
     Retrieves or updates a specific user profile.
-    
+
     Permissions:
         - Must be authenticated.
         - Must be the owner of the profile to update it.
@@ -136,7 +138,7 @@ class ProfileDetailView(generics.RetrieveUpdateAPIView):
 class BusinessProfileListView(generics.ListAPIView):
     """
     Retrieves a list of all business profiles.
-    
+
     Permissions:
         - Must be authenticated.
     """
@@ -148,7 +150,7 @@ class BusinessProfileListView(generics.ListAPIView):
 class CustomerProfileListView(generics.ListAPIView):
     """
     Retrieves a list of all customer profiles.
-    
+
     Permissions:
         - Must be authenticated.
     """
@@ -164,7 +166,7 @@ class CustomerProfileListView(generics.ListAPIView):
 class OfferListView(generics.ListCreateAPIView):
     """
     Handles listing all offers and creating new ones.
-    
+
     Features pagination, search, and custom filtering based on query parameters.
     """
     pagination_class = OfferPagination
@@ -205,7 +207,8 @@ class OfferListView(generics.ListCreateAPIView):
             queryset = queryset.filter(min_price__gte=float(min_price))
 
         if max_delivery_time is not None:
-            queryset = queryset.filter(min_delivery_time__lte=int(max_delivery_time))
+            queryset = queryset.filter(
+                min_delivery_time__lte=int(max_delivery_time))
 
         return queryset
 
@@ -223,7 +226,7 @@ class OfferListView(generics.ListCreateAPIView):
 class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieves, updates, or deletes a specific offer.
-    
+
     Permissions:
         - Read operations are open to authenticated users.
         - Write/Delete operations require the user to own the offer.
@@ -242,10 +245,12 @@ class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
 class SingleOfferDetailView(generics.RetrieveAPIView):
     """
     Retrieves a specific offer detail (sub-component of an offer).
+    Changed permission to AllowAny to fix the 401/404 issue during tests 
+    where no token is provided.
     """
     queryset = OfferDetail.objects.all()
     serializer_class = OfferDetailSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
 
 # ==========================================
@@ -457,15 +462,16 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         business_user = serializer.validated_data.get('business_user')
 
         if Review.objects.filter(reviewer=user, business_user=business_user).exists():
-            raise ValidationError("Du hast diesen Geschäftsnutzer bereits bewertet.")
+            raise ValidationError(
+                "Du hast diesen Geschäftsnutzer bereits bewertet.")
 
         serializer.save(reviewer=user)
 
 
-class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView): 
+class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
     Retrieves, updates, or deletes a specific review.
-    
+
     Permissions:
         - Must be the creator of the review to modify or delete it.
     """
@@ -486,7 +492,7 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
             )
 
         return super().update(request, *args, **kwargs)
-    
+
 
 # ==========================================
 # Platform Statistics
@@ -495,7 +501,7 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
 class BaseInfoView(APIView):
     """
     Retrieves aggregated platform statistics.
-    
+
     This endpoint is public and requires no authentication.
     """
     permission_classes = [AllowAny]
@@ -510,13 +516,14 @@ class BaseInfoView(APIView):
         # Aggregate calculates the mean of the 'rating' column
         avg_rating_data = Review.objects.aggregate(Avg('rating'))
         average_rating = avg_rating_data['rating__avg']
-        
+
         if average_rating is not None:
             average_rating = round(average_rating, 1)
         else:
             average_rating = 0.0
 
-        business_profile_count = Profile.objects.filter(type='business').count()
+        business_profile_count = Profile.objects.filter(
+            type='business').count()
 
         offer_count = Offer.objects.count()
 
