@@ -236,7 +236,11 @@ class OfferDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
     def get_serializer_class(self):
-        """Uses a specialized serializer for partial updates (PATCH/PUT)."""
+        """
+        Uses a specialized serializer for partial updates (PATCH/PUT).
+        Damit der 400-Fehler korrekt geworfen wird, muss OfferPatchSerializer 
+        eine validate-Methode besitzen!
+        """
         if self.request.method in ['PATCH', 'PUT']:
             return OfferPatchSerializer
         return SingleOfferSerializer

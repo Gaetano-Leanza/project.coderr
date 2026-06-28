@@ -319,13 +319,25 @@ class OfferPatchSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'image', 'description', 'details']
         read_only_fields = ['id']
 
+    def validate(self, data):
+        """
+        Validates that at least one field is provided for the PATCH request.
+        """
+        # Wenn der Body leer ist oder nur ungültige Keys enthält
+        if not data and not self.initial_data:
+            raise serializers.ValidationError(
+                {"detail": "Keine Daten für das Update bereitgestellt."})
+
+        # Sicherstellen, dass bei einem Detail-Update auch Daten geliefert wurden
+        if 'details' in data and not data['details']:
+            raise serializers.ValidationError(
+                {"details": "Details dürfen nicht leer sein, wenn sie bereitgestellt werden."})
+
+        return data
+
     def update(self, instance, validated_data):
         """
         Overrides the default update method to manage nested details safely.
-
-        Updates the parent Offer fields, then iterates through any provided 
-        nested details to perform an 'update_or_create'. Finally, it recalculates 
-        and saves the minimum price and delivery time for the parent Offer.
         """
         details_data = validated_data.pop('details', None)
 
