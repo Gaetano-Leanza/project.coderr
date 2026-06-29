@@ -111,15 +111,17 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """
-        Aktualisiert das Profil und stellt sicher, dass die E-Mail 
-        korrekt im verknüpften User-Objekt gespeichert wird.
+        Updates the profile instance and handles nested user data safely.
+
+        Specifically extracts the email from the nested user dictionary to update 
+        the associated User model directly, avoiding DRF's default nested update errors.
         """
 
         user_data = validated_data.pop('user', {})
-        email = validated_data.get('email')
+        new_email = user_data.get('email')
 
-        if email:
-            instance.user.email = email
+        if new_email:
+            instance.user.email = new_email
             instance.user.save()
 
         return super().update(instance, validated_data)
