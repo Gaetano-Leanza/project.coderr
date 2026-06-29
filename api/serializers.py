@@ -325,12 +325,11 @@ class OfferPatchSerializer(serializers.ModelSerializer):
         """
         Validates that at least one field is provided for the PATCH request.
         """
-        # Wenn der Body leer ist oder nur ungültige Keys enthält
+
         if not data and not self.initial_data:
             raise serializers.ValidationError(
                 {"detail": "Keine Daten für das Update bereitgestellt."})
 
-        # Sicherstellen, dass bei einem Detail-Update auch Daten geliefert wurden
         if 'details' in data and not data['details']:
             raise serializers.ValidationError(
                 {"details": "Details dürfen nicht leer sein, wenn sie bereitgestellt werden."})
@@ -343,12 +342,10 @@ class OfferPatchSerializer(serializers.ModelSerializer):
         """
         details_data = validated_data.pop('details', None)
 
-        # Update the main Offer instance
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # Update or create nested OfferDetails if provided
         if details_data is not None:
             for detail_item in details_data:
                 offer_type = detail_item.get('offer_type')
@@ -360,7 +357,6 @@ class OfferPatchSerializer(serializers.ModelSerializer):
                         defaults=detail_item
                     )
 
-            # Recalculate minimum values across all details
             current_details = instance.details.all()
             if current_details.exists():
                 instance.min_price = min([d.price for d in current_details])
@@ -413,3 +409,16 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ['id', 'business_user', 'reviewer', 'rating',
                   'description', 'created_at', 'updated_at']
         read_only_fields = ['reviewer', 'created_at', 'updated_at']
+
+
+class BusinessProfileListSerializer(ProfileSerializer):
+    """
+    Serializer for listing business profiles.
+    Inherits from ProfileSerializer but restricts the output fields 
+    to match the API documentation (hides email and created_at).
+    """
+    class Meta(ProfileSerializer.Meta):
+        fields = [
+            'user', 'username', 'first_name', 'last_name', 'file',
+            'location', 'tel', 'description', 'working_hours', 'type'
+        ]
