@@ -23,7 +23,7 @@ from .serializers import (
     OfferPatchSerializer,
     OfferDetailSerializer,
     OrderSerializer,
-    ReviewSerializer
+    ReviewSerializer, BusinessProfileListSerializer
 )
 from .pagination import OfferPagination
 from .permissions import (
@@ -143,7 +143,7 @@ class BusinessProfileListView(generics.ListAPIView):
         - Must be authenticated.
     """
     queryset = Profile.objects.filter(type='business')
-    serializer_class = ProfileSerializer
+    serializer_class = BusinessProfileListSerializer
     permission_classes = [IsAuthenticated]
 
 

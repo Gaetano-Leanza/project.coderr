@@ -325,14 +325,24 @@ class OfferPatchSerializer(serializers.ModelSerializer):
         """
         Validates that at least one field is provided for the PATCH request.
         """
-
         if not data and not self.initial_data:
             raise serializers.ValidationError(
-                {"detail": "Keine Daten für das Update bereitgestellt."})
+                {"detail": "Keine Daten für das Update bereitgestellt."}
+            )
 
-        if 'details' in data and not data['details']:
+        if 'details' in data:
+            details_data = data['details']
+
+        if not details_data:
             raise serializers.ValidationError(
-                {"details": "Details dürfen nicht leer sein, wenn sie bereitgestellt werden."})
+                {"details": "Details dürfen nicht leer sein, wenn sie bereitgestellt werden."}
+            )
+
+        for detail_item in details_data:
+            if not detail_item.get('offer_type'):
+                raise serializers.ValidationError(
+                    {"details": "Der 'offer_type' (basic, standard, premium) muss mitgegeben werden, um ein Detail zu aktualisieren."}
+                )
 
         return data
 
