@@ -274,7 +274,7 @@ class OrderListCreateView(generics.ListCreateAPIView):
         """
         if self.request.method == 'POST':
 
-            return [IsAuthenticated()]
+            return [IsAuthenticated(), IsCustomer()]
         return [IsAuthenticated()]
 
     def get_queryset(self):
