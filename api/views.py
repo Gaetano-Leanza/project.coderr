@@ -353,7 +353,8 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def update(self, request, *args, **kwargs):
         """
-        Restricts updates to the 'status' field only and validates the state.
+        Restricts updates to the 'status' field only, validates the state,
+        and saves it directly to bypass strict serializer constraints.
         """
         allowed_fields = {'status'}
         request_keys = set(request.data.keys())
@@ -373,7 +374,12 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        return super().update(request, *args, **kwargs)
+        instance = self.get_object()
+        instance.status = new_status
+        instance.save()
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class OrderCountView(APIView):
