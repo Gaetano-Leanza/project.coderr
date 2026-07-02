@@ -9,6 +9,7 @@ __pycache__/
 venv/
 env/
 .env/
+.venv/
 
 # Datenbanken (SQLite darf nicht hochgeladen werden)
 db.sqlite3
@@ -19,3 +20,4 @@ db.sqlite3
 
 # Umgebungsvariablen (NIEMALS echte Keys hochladen)
 .env
+
