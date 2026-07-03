@@ -404,22 +404,20 @@ class OrderSerializer(serializers.ModelSerializer):
             'offer_detail_id'
         ]
 
-        read_only_fields = ['id', 'customer_user',
-                            'business_user', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'customer_user', 'business_user',
+            'title', 'revisions', 'delivery_time_in_days',
+            'price', 'features', 'offer_type', 'status',
+            'created_at', 'updated_at'
+        ]
 
     def validate(self, data):
         """
-        Validates that critical order fields are present and valid.
+        Da alle bestellrelevanten Daten nun automatisch im Backend aus dem 
+        OfferDetail gezogen werden (read_only), reicht es, die Daten einfach 
+        durchzureichen. Die offer_detail_id wird bereits durch das 
+        PrimaryKeyRelatedField validiert.
         """
-
-        if not data.get('title'):
-            raise serializers.ValidationError(
-                {"title": "Ein Titel für die Bestellung ist erforderlich."})
-
-        if data.get('price', 0) < 0:
-            raise serializers.ValidationError(
-                {"price": "Der Preis darf nicht negativ sein."})
-
         return data
 
 
