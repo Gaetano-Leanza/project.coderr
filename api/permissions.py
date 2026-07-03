@@ -33,7 +33,7 @@ class IsOwnerProfile(permissions.BasePermission):
 class IsBusinessProfile(permissions.BasePermission):
     """
     Global permission to only allow 'business' type users to access a view.
-    
+
     Typically used to restrict offer creation to business accounts only.
     """
     message = "Nur User vom type 'business' dürfen Angebote erstellen."
@@ -83,7 +83,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 class IsCustomer(permissions.BasePermission):
     """
     Global permission to only allow 'customer' type users to access a view.
-    
+
     Typically used to restrict order creation and review posting to customers.
     """
     message = "Benutzer hat keine Berechtigung, z.B. weil nicht vom typ 'customer'."
@@ -109,31 +109,27 @@ class IsCustomer(permissions.BasePermission):
 
 class IsOrderParticipant(permissions.BasePermission):
     """
-    Object-level permission to only allow participants of an order to view/edit it.
+    Object-level permission to only allow participants of an order to view it,
+    but restricts editing (status updates) strictly to the business user.
     """
     message = "Benutzer hat keine Berechtigung, diese Bestellung zu aktualisieren."
 
     def has_object_permission(self, request, view, obj):
         """
-        Checks if the requesting user is either the customer or the business 
-        associated with the specific order.
-
-        Args:
-            request: The incoming HTTP request.
-            view: The view being accessed.
-            obj: The Order object being accessed.
-
-        Returns:
-            bool: True if the user is a participant, False otherwise.
+        Checks if the requesting user has the right to view or edit the order.
         """
-        return obj.customer_user == request.user or obj.business_user == request.user
+
+        if request.method in permissions.SAFE_METHODS:
+            return obj.customer_user == request.user or obj.business_user == request.user
+
+        return obj.business_user == request.user
 
 
 class IsReviewCreator(permissions.BasePermission):
     """
     Object-level permission to only allow the original creator of a review to edit it.
     """
-    
+
     def has_object_permission(self, request, view, obj):
         """
         Checks if the requesting user matches the reviewer of the object.
