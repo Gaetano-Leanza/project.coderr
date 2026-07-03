@@ -289,21 +289,15 @@ class OrderListCreateView(generics.ListCreateAPIView):
         """
         Creates a new order based on a specific OfferDetail ID using the serializer for validation.
         """
-        # 1. Daten an den Serializer übergeben zur automatischen Validierung
         serializer = self.get_serializer(data=request.data)
         
-        # 2. Prüfen, ob die Eingabe korrekt ist. Falls 'ungültig' gesendet wird, 
-        # wirft dies nun automatisch den korrekten 400 Bad Request Fehler.
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-        # 3. Das validierte OfferDetail-Objekt auslesen
-        # (Dank des PrimaryKeyRelatedFields in der serializers.py ist das hier bereits das fertige Datenbank-Objekt!)
-        offer_detail = serializer.validated_data['offer_detail_id']
+        offer_detail = serializer.validated_data.pop('offer_detail_id')
         business_user = offer_detail.offer.user
 
         try:
-            # 4. Speichern über den Serializer, anstatt Order.objects.create() manuell aufzurufen
             serializer.save(
                 customer_user=request.user,
                 business_user=business_user,
