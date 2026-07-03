@@ -273,7 +273,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
         - POST: Only authenticated customers can place orders.
         """
         if self.request.method == 'POST':
-
             return [IsAuthenticated(), IsCustomer()]
         return [IsAuthenticated()]
 
@@ -288,33 +287,24 @@ class OrderListCreateView(generics.ListCreateAPIView):
 
     def create(self, request, *args, **kwargs):
         """
-        Creates a new order based on a specific OfferDetail ID with robust error handling.
+        Creates a new order based on a specific OfferDetail ID using the serializer for validation.
         """
-        offer_detail_id = request.data.get('offer_detail_id')
-
-        if not offer_detail_id:
-            return Response(
-                {"detail": "Ungültige Anfragedaten ('offer_detail_id' fehlt)."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            offer_detail = OfferDetail.objects.get(id=offer_detail_id)
-        except OfferDetail.DoesNotExist:
-            return Response(
-                {"detail": "Das angegebene Angebotsdetail wurde nicht gefunden."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-
-            return Response(
-                {"detail": f"Ein interner Fehler ist aufgetreten: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # 1. Daten an den Serializer übergeben zur automatischen Validierung
+        serializer = self.get_serializer(data=request.data)
+        
+        # 2. Prüfen, ob die Eingabe korrekt ist. Falls 'ungültig' gesendet wird, 
+        # wirft dies nun automatisch den korrekten 400 Bad Request Fehler.
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 3. Das validierte OfferDetail-Objekt auslesen
+        # (Dank des PrimaryKeyRelatedFields in der serializers.py ist das hier bereits das fertige Datenbank-Objekt!)
+        offer_detail = serializer.validated_data['offer_detail_id']
+        business_user = offer_detail.offer.user
 
         try:
-            business_user = offer_detail.offer.user
-            order = Order.objects.create(
+            # 4. Speichern über den Serializer, anstatt Order.objects.create() manuell aufzurufen
+            serializer.save(
                 customer_user=request.user,
                 business_user=business_user,
                 title=offer_detail.title,
@@ -325,7 +315,6 @@ class OrderListCreateView(generics.ListCreateAPIView):
                 offer_type=offer_detail.offer_type,
                 status='in_progress'
             )
-            serializer = self.get_serializer(order)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response(
