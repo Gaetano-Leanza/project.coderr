@@ -382,13 +382,26 @@ class OrderSerializer(serializers.ModelSerializer):
     Serializer for managing customer Orders.
     Includes validation to prevent creation of orders with missing essential data.
     """
+
+    offer_detail_id = serializers.PrimaryKeyRelatedField(
+        queryset=OfferDetail.objects.all(),
+        write_only=True,
+        required=True,
+        error_messages={
+            'incorrect_type': "Ungültige Anfragedaten: 'offer_detail_id' muss eine Zahl sein.",
+            'does_not_exist': "Das angegebene Angebotsdetail wurde nicht gefunden.",
+            'null': "Ungültige Anfragedaten: 'offer_detail_id' darf nicht null sein."
+        }
+    )
+
     class Meta:
         model = Order
         fields = [
             'id', 'customer_user', 'business_user', 'title',
             'revisions', 'delivery_time_in_days', 'price',
             'features', 'offer_type', 'status',
-            'created_at', 'updated_at'
+            'created_at', 'updated_at',
+            'offer_detail_id'
         ]
 
         read_only_fields = ['id', 'customer_user',
