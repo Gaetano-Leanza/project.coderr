@@ -22,8 +22,8 @@ def main():
             (e.g., if the virtual environment has not been activated).
     """
     # Tells Django where to find the configuration file (settings.py).
-    # Note: 'config.settings' must exactly match your project structure.
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    # Note: 'coderr.settings' must exactly match your project structure.
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coderr.settings')
     
     try:
         # Attempts to load the core function for executing console commands.

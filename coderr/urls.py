@@ -3,7 +3,7 @@ Main URL configuration for the Django project.
 
 This module acts as the central routing hub for the application. It maps 
 incoming HTTP requests to their corresponding class-based views (CBVs) 
-within the `api` app.
+within the application.
 
 Attributes:
     urlpatterns (list): A list of url() or path() instances that determine 
@@ -13,22 +13,22 @@ Attributes:
 from django.contrib import admin
 from django.urls import path
 
-# Importing all necessary class-based views from the API application.
-from api.views import (
+# WICHTIG: Der Import-Pfad geht jetzt über das neue api-Modul im core-Ordner!
+from core.api.views import (
     BusinessProfileListView,
     CustomerProfileListView,
     RegistrationView,
     LoginView,
     ProfileDetailView,
     OfferListView,
-    OfferDetailView, 
-    SingleOfferDetailView, 
-    OrderListCreateView, 
-    OrderDetailView, 
-    OrderCountView, 
-    CompletedOrderCountView, 
-    ReviewListCreateView, 
-    ReviewDetailView, 
+    OfferDetailView,
+    SingleOfferDetailView,
+    OrderListCreateView,
+    OrderDetailView,
+    OrderCountView,
+    CompletedOrderCountView,
+    ReviewListCreateView,
+    ReviewDetailView,
     BaseInfoView
 )
 
@@ -48,8 +48,10 @@ urlpatterns = [
     # ==========================================
     # Profile Management Endpoints
     # ==========================================
-    path('api/profiles/business/', BusinessProfileListView.as_view(), name='business-profile-list'),
-    path('api/profiles/customer/', CustomerProfileListView.as_view(), name='customer-profile-list'),
+    path('api/profiles/business/', BusinessProfileListView.as_view(),
+         name='business-profile-list'),
+    path('api/profiles/customer/', CustomerProfileListView.as_view(),
+         name='customer-profile-list'),
     path('api/profile/<int:pk>/', ProfileDetailView.as_view(), name='profile-detail'),
 
     # ==========================================
@@ -57,15 +59,18 @@ urlpatterns = [
     # ==========================================
     path('api/offers/', OfferListView.as_view(), name='offer-list'),
     path('api/offers/<int:pk>/', OfferDetailView.as_view(), name='offer-detail'),
-    path('api/offerdetails/<int:pk>/', SingleOfferDetailView.as_view(), name='offerdetail-detail'),
+    path('api/offerdetails/<int:pk>/',
+         SingleOfferDetailView.as_view(), name='offerdetail-detail'),
 
     # ==========================================
     # Order Management & Statistics Endpoints
     # ==========================================
     path('api/orders/', OrderListCreateView.as_view(), name='order-list'),
     path('api/orders/<int:pk>/', OrderDetailView.as_view(), name='order-detail'),
-    path('api/order-count/<int:business_user_id>/', OrderCountView.as_view(), name='order-count'),
-    path('api/completed-order-count/<int:business_user_id>/', CompletedOrderCountView.as_view(), name='completed-order-count'),
+    path('api/order-count/<int:business_user_id>/',
+         OrderCountView.as_view(), name='order-count'),
+    path('api/completed-order-count/<int:business_user_id>/',
+         CompletedOrderCountView.as_view(), name='completed-order-count'),
 
     # ==========================================
     # Review System Endpoints

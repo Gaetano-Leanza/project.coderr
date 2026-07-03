@@ -19,4 +19,4 @@ class ApiConfig(AppConfig):
     this is the place to do it.
     """
     # The full Python path to the application.
-    name = 'api'
+    name = 'core'

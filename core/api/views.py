@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status, generics, filters, permissions
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .models import Profile, Offer, OfferDetail, Order, Review
+from ..models import Profile, Offer, OfferDetail, Order, Review
 from .serializers import (
     RegistrationSerializer,
     LoginSerializer,

@@ -15,9 +15,9 @@ import os
 from django.core.wsgi import get_wsgi_application
 
 # Sets the default environment variable for Django's settings module.
-# 'config.settings' points to the main configuration file of the project,
+# 'coderr.settings' points to the main configuration file of the project,
 # allowing the WSGI server to know where your project settings are located.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'coderr.settings')
 
 # Initializes and exposes the WSGI application callable.
 # Production web servers (e.g., Gunicorn, Apache, Nginx with uWSGI) will 

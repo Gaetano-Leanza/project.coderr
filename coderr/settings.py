@@ -1,5 +1,5 @@
 """
-Django settings for the config project.
+Django settings for the coderr project.
 
 This module contains all the configuration variables and settings for the 
 Django application, including database connections, installed applications, 
@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     'corsheaders',               # Handles Cross-Origin Resource Sharing (CORS)
     
     # Local Applications
-    'api',                       # Main API application containing the business logic
+    'core',                      # WICHTIG: Hier wurde 'api' zu 'core' geändert!
 ]
 
 # Middleware components are hooks into Django's request/response processing.
@@ -76,7 +76,8 @@ MIDDLEWARE = [
 ]
 
 # Points Django to the root URL configuration module.
-ROOT_URLCONF = 'config.urls'
+# WICHTIG: Hier wurde 'config.urls' zu 'coderr.urls' geändert!
+ROOT_URLCONF = 'coderr.urls'
 
 # Configuration for Django's template rendering engine.
 TEMPLATES = [
@@ -95,7 +96,8 @@ TEMPLATES = [
 ]
 
 # The Python path to the WSGI application object that Django's built-in servers will use.
-WSGI_APPLICATION = 'config.wsgi.application'
+# WICHTIG: Hier wurde 'config.wsgi.application' zu 'coderr.wsgi.application' geändert!
+WSGI_APPLICATION = 'coderr.wsgi.application'
 
 
 # ==========================================
